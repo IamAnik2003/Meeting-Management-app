@@ -258,9 +258,7 @@ app.post("/api/events", async (req, res) => {
       participants: processedParticipants
     };
 
-    // Log the event being created
     console.log("Creating event with meeting link:", meetingLink);
-    console.log("Event password:", password);
 
     // Add to user's events
     const result = await User.findByIdAndUpdate(
@@ -273,7 +271,6 @@ app.post("/api/events", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Get the newly added event (last one in array)
     const createdEvent = result.events[result.events.length - 1];
 
     res.status(201).json({ 
@@ -326,7 +323,6 @@ app.get("/api/events/:eventId/details", async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    // Find the event in any user's events
     const host = await User.findOne({ "events._id": eventId });
     if (!host) {
       return res.status(404).json({ message: "Event not found" });
@@ -359,7 +355,6 @@ app.get("/api/events/:eventId/meeting-details", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if user is the host
     const hostedEvent = user.events.id(eventId);
     if (hostedEvent) {
       if (hostedEvent.isDeleted) {
@@ -377,10 +372,8 @@ app.get("/api/events/:eventId/meeting-details", async (req, res) => {
       });
     }
 
-    // Check participant events
     const participantEvent = user.participantEvents.id(eventId);
     if (participantEvent) {
-      // Check if event is deleted
       if (participantEvent.isDeleted) {
         return res.status(403).json({ 
           message: "This event has been deleted",
@@ -389,9 +382,7 @@ app.get("/api/events/:eventId/meeting-details", async (req, res) => {
         });
       }
 
-      // Only return meeting details if accepted
       if (participantEvent.participationStatus === 'accepted') {
-        // Get the full event details from host's events
         const host = await User.findOne({ "events._id": eventId });
         if (host) {
           const event = host.events.id(eventId);
@@ -419,17 +410,17 @@ app.get("/api/events/:eventId/meeting-details", async (req, res) => {
   }
 });
 
+// Get booking events for a user
 app.get("/api/users/:userId/bookingevents", async (req, res) => {
   try {
     const userId = req.params.userId;
     
-    // Get user data
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 1. Get hosted events (events where user is the host) - exclude deleted
+    // Get hosted events (excluding deleted)
     const hostedEvents = await User.aggregate([
       { $match: { _id: new mongoose.Types.ObjectId(userId) } },
       { $unwind: "$events" },
@@ -477,7 +468,7 @@ app.get("/api/users/:userId/bookingevents", async (req, res) => {
       { $replaceRoot: { newRoot: "$events" } }
     ]);
 
-    // 2. Get participant events - exclude deleted
+    // Get participant events (excluding deleted)
     const allParticipantEvents = await User.aggregate([
       { $match: { "events.participants.email": user.email } },
       { $unwind: "$events" },
@@ -535,14 +526,13 @@ app.get("/api/users/:userId/bookingevents", async (req, res) => {
       { $replaceRoot: { newRoot: "$events" } }
     ]);
 
-    // 3. Update user's participantEvents array (only with new events)
+    // Update user's participantEvents array
     if (allParticipantEvents.length > 0) {
       const newParticipantEvents = allParticipantEvents.filter(event => 
         !user.participantEvents.some(pe => pe._id.equals(event._id))
       ).map(event => ({
         ...event,
         participationStatus: event.participationStatus,
-        // Only include meeting details if accepted
         ...(event.participationStatus === 'accepted' ? {
           meetingLink: event.meetingLink,
           password: event.password || ""
@@ -557,7 +547,6 @@ app.get("/api/users/:userId/bookingevents", async (req, res) => {
       }
     }
     
-    // 4. Get the updated participantEvents from the user document
     const updatedUser = await User.findById(userId);
     
     res.status(200).json({
@@ -574,23 +563,20 @@ app.get("/api/users/:userId/bookingevents", async (req, res) => {
   }
 });
 
-// Get all events with optional filtering (maintains backward compatibility)
+// Get all events with optional filtering
 app.get("/api/users/:userId/events", async (req, res) => {
   try {
     const { status } = req.query;
     const now = new Date();
     const userId = req.params.userId;
 
-    // Original behavior when no status filter is provided
     if (!status) {
       const user = await User.findById(userId).select("events");
       if (!user) return res.status(404).json({ message: "User not found" });
-      // Filter out deleted events
       const activeEvents = user.events.filter(event => !event.isDeleted);
       return res.status(200).json(activeEvents);
     }
 
-    // New filtering behavior when status is specified
     let eventsFilter = {};
     
     switch (status) {
@@ -685,14 +671,12 @@ app.put("/api/events/:eventId", async (req, res) => {
       updateData.dateTime = new Date(updateData.dateTime);
     }
 
-    // Validate meeting link if provided
     if (updateData.meetingLink && !isValidUrl(updateData.meetingLink)) {
       return res.status(400).json({ 
         message: "Invalid meeting link format. Please provide a valid URL." 
       });
     }
 
-    // Get the existing event first to preserve createdBy and check for duplicates
     const user = await User.findOne({ _id: userId, "events._id": req.params.eventId });
     if (!user) {
       return res.status(404).json({ message: "User or event not found" });
@@ -703,7 +687,6 @@ app.put("/api/events/:eventId", async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Check for duplicate meeting link (excluding the current event)
     if (updateData.meetingLink) {
       const duplicateEvent = user.events.find(e => 
         e.meetingLink === updateData.meetingLink && 
@@ -717,7 +700,6 @@ app.put("/api/events/:eventId", async (req, res) => {
       }
     }
 
-    // Preserve the createdBy field from the existing event
     updateData.createdBy = existingEvent.createdBy || userId;
 
     const updatedUser = await User.findOneAndUpdate(
@@ -746,12 +728,10 @@ app.patch("/api/events/:eventId/status", async (req, res) => {
     const { userId, isActive } = req.body;
     const eventId = req.params.eventId;
 
-    // Validate input
     if (!userId || typeof isActive !== 'boolean') {
       return res.status(400).json({ message: "Invalid request data" });
     }
 
-    // Find and update the event
     const result = await User.findOneAndUpdate(
       { 
         _id: userId,
@@ -769,7 +749,6 @@ app.patch("/api/events/:eventId/status", async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Find the updated event to return
     const updatedEvent = result.events.find(e => e._id.toString() === eventId);
     
     res.status(200).json({ 
@@ -785,7 +764,7 @@ app.patch("/api/events/:eventId/status", async (req, res) => {
   }
 });
 
-// Delete event with synchronization for participants
+// ============ IMPORTANT: DELETE EVENT WITH SYNC ============
 app.delete("/api/events/:eventId", async (req, res) => {
   try {
     const { userId } = req.body;
@@ -805,42 +784,33 @@ app.delete("/api/events/:eventId", async (req, res) => {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Mark event as deleted instead of removing it completely
-    // This allows participants to see the event as deleted
-    await User.updateOne(
-      { _id: userId, "events._id": req.params.eventId },
-      { 
-        $set: { 
-          "events.$.isDeleted": true,
-          "events.$.status": "deleted"
-        } 
-      }
-    );
-
-    // Also mark as deleted in all participants' participantEvents
+    // Get all participant emails from the event
     const participantEmails = eventToDelete.participants
       .filter(p => p.status !== 'host')
       .map(p => p.email);
 
+    // PERMANENTLY DELETE from host's events
+    const result = await User.updateOne(
+      { _id: userId },
+      { $pull: { events: { _id: req.params.eventId } } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // PERMANENTLY DELETE from all participants' participantEvents
     if (participantEmails.length > 0) {
       await User.updateMany(
         { email: { $in: participantEmails } },
-        { 
-          $set: { 
-            "participantEvents.$[elem].isDeleted": true,
-            "participantEvents.$[elem].status": "deleted"
-          }
-        },
-        { 
-          arrayFilters: [{ "elem._id": req.params.eventId }],
-          multi: true
-        }
+        { $pull: { participantEvents: { _id: req.params.eventId } } }
       );
     }
 
     res.status(200).json({ 
       message: "Event deleted successfully",
-      removedFrom: participantEmails.length
+      removedFrom: participantEmails.length,
+      participants: participantEmails
     });
   } catch (error) {
     console.error("Error deleting event:", error);
@@ -858,7 +828,6 @@ app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => 
       return res.status(400).json({ message: "Participation status is required" });
     }
 
-    // Check if event is deleted
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -871,7 +840,6 @@ app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => 
       });
     }
 
-    // Get the event details from host
     const host = await User.findOne({ "events._id": eventId });
     if (!host) {
       return res.status(404).json({ message: "Event not found" });
@@ -882,12 +850,10 @@ app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => 
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // Update in participant's events array with meeting details if accepted
     const updateData = {
       "participantEvents.$.participationStatus": participationStatus
     };
 
-    // Only add meeting details if accepted
     if (participationStatus === 'accepted') {
       updateData["participantEvents.$.meetingLink"] = event.meetingLink;
       updateData["participantEvents.$.password"] = event.password || "";
@@ -904,7 +870,6 @@ app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => 
       { $set: updateData }
     );
 
-    // Also update in host's events participants array
     await User.updateOne(
       { 
         "events._id": eventId,
@@ -917,7 +882,6 @@ app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => 
       }
     );
 
-    // Return updated participant events
     const updatedUser = await User.findById(userId);
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
@@ -992,38 +956,29 @@ app.put('/api/users/:userId/availability', async (req, res) => {
   try {
     const { weeklyHours, timezone } = req.body;
 
-    // Validate data
     if (!weeklyHours || !Array.isArray(weeklyHours)) {
-      console.log("Validation failed: weeklyHours is not an array");
       return res.status(400).json({ error: 'Invalid data format: weeklyHours must be an array' });
     }
 
-    // Additional validation for weeklyHours
     for (const dayData of weeklyHours) {
       if (!dayData.day || !['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].includes(dayData.day)) {
-        console.log("Validation failed: Invalid day", dayData);
         return res.status(400).json({ error: `Invalid day: ${dayData.day}` });
       }
       if (typeof dayData.available !== 'boolean') {
-        console.log("Validation failed: available must be a boolean", dayData);
         return res.status(400).json({ error: `Invalid available value for ${dayData.day}: must be a boolean` });
       }
       if (!Array.isArray(dayData.timings)) {
-        console.log("Validation failed: timings must be an array", dayData);
         return res.status(400).json({ error: `Invalid timings for ${dayData.day}: must be an array` });
       }
       for (const timing of dayData.timings) {
         if (!timing.from || !timing.to) {
-          console.log("Validation failed: timing missing from/to", timing);
           return res.status(400).json({ error: `Invalid timing for ${dayData.day}: from and to are required` });
         }
       }
     }
 
-    // Ensure the availability field exists
     const user = await User.findById(req.params.userId);
     if (!user) {
-      console.log("User not found:", req.params.userId);
       return res.status(404).json({ error: 'User not found' });
     }
 
@@ -1044,7 +999,6 @@ app.put('/api/users/:userId/availability', async (req, res) => {
     );
 
     if (!updatedUser) {
-      console.log("User not found after update:", req.params.userId);
       return res.status(404).json({ error: 'User not found' });
     }
 
