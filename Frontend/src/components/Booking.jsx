@@ -8,7 +8,7 @@ import axios from "axios";
 import avatar from "../assets/avater.png";
 import accept from "../assets/accept.png";
 import reject from "../assets/reject.png";
-import linkIcon from "../assets/link.png";
+// Removed link.png import - using inline SVG or emoji instead
 
 export default function Booking() {
   const [activeTab, setActiveTab] = useState("Upcoming");
@@ -469,7 +469,7 @@ export default function Booking() {
                   className={styles.people}
                   onClick={() => showParticipants(event.participants || [], event._id)}
                 >
-                  <img src={people} alt="" />
+                  <img src={people} alt="People" />
                   <p>{event.participants?.length || 0} people</p>
                 </div>
                 {canViewMeeting && (
@@ -477,7 +477,7 @@ export default function Booking() {
                     className={styles.meetingButton}
                     onClick={() => toggleMeetingDetails(event._id)}
                   >
-                    <img src={linkIcon} alt="Meeting" />
+                    <span>🔗</span>
                     <span>Meeting</span>
                   </button>
                 )}
@@ -520,7 +520,7 @@ export default function Booking() {
                 className={styles.people}
                 onClick={() => showParticipants(event.participants || [], event._id)}
               >
-                <img src={people} alt="" />
+                <img src={people} alt="People" />
                 <p>{event.participants?.length || 0} people</p>
               </div>
               <div className={styles.btns}>
@@ -529,7 +529,7 @@ export default function Booking() {
                   onClick={() => handleRejectEvent(event._id)}
                   disabled={isProcessing}
                 >
-                  <img src={reject} alt="" />
+                  <img src={reject} alt="Reject" />
                   <p>Reject</p>
                 </button>
                 <button
@@ -537,7 +537,7 @@ export default function Booking() {
                   onClick={() => handleAcceptEvent(event._id)}
                   disabled={isProcessing}
                 >
-                  <img src={accept} alt="" />
+                  <img src={accept} alt="Accept" />
                   <p>Accept</p>
                 </button>
               </div>
@@ -579,7 +579,7 @@ export default function Booking() {
                 className={styles.people}
                 onClick={() => showParticipants(event.participants || [], event._id)}
               >
-                <img src={people} alt="" />
+                <img src={people} alt="People" />
                 <p>{event.participants?.length || 0} people</p>
               </div>
             </div>
@@ -626,7 +626,7 @@ export default function Booking() {
                 className={styles.people}
                 onClick={() => showParticipants(event.participants || [], event._id)}
               >
-                <img src={people} alt="" />
+                <img src={people} alt="People" />
                 <p>{event.participants?.length || 0} people</p>
               </div>
             </div>
