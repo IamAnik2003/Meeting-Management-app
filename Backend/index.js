@@ -253,6 +253,7 @@ app.post("/api/events", async (req, res) => {
       createdBy: userId,
       status: 'active',
       isActive: true,
+      isDeleted: false,
       createdAt: new Date(),
       participants: processedParticipants
     };
@@ -315,6 +316,34 @@ app.get("/api/events/:eventId", async (req, res) => {
   }
 });
 
+// Get event details by ID (for participants)
+app.get("/api/events/:eventId/details", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const eventId = req.params.eventId;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Find the event in any user's events
+    const host = await User.findOne({ "events._id": eventId });
+    if (!host) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    const event = host.events.id(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.status(200).json(event);
+  } catch (error) {
+    console.error("Error getting event details:", error);
+    res.status(500).json({ message: "Error getting event details" });
+  }
+});
+
 // Get meeting details with access control
 app.get("/api/events/:eventId/meeting-details", async (req, res) => {
   try {
@@ -333,6 +362,13 @@ app.get("/api/events/:eventId/meeting-details", async (req, res) => {
     // Check if user is the host
     const hostedEvent = user.events.id(eventId);
     if (hostedEvent) {
+      if (hostedEvent.isDeleted) {
+        return res.status(403).json({ 
+          message: "This event has been deleted",
+          hasAccess: false,
+          isDeleted: true
+        });
+      }
       return res.status(200).json({
         meetingLink: hostedEvent.meetingLink,
         password: hostedEvent.password || "",
@@ -344,6 +380,15 @@ app.get("/api/events/:eventId/meeting-details", async (req, res) => {
     // Check participant events
     const participantEvent = user.participantEvents.id(eventId);
     if (participantEvent) {
+      // Check if event is deleted
+      if (participantEvent.isDeleted) {
+        return res.status(403).json({ 
+          message: "This event has been deleted",
+          hasAccess: false,
+          isDeleted: true
+        });
+      }
+
       // Only return meeting details if accepted
       if (participantEvent.participationStatus === 'accepted') {
         // Get the full event details from host's events
@@ -384,10 +429,15 @@ app.get("/api/users/:userId/bookingevents", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // 1. Get hosted events (events where user is the host)
+    // 1. Get hosted events (events where user is the host) - exclude deleted
     const hostedEvents = await User.aggregate([
       { $match: { _id: new mongoose.Types.ObjectId(userId) } },
       { $unwind: "$events" },
+      {
+        $match: {
+          "events.isDeleted": { $ne: true }
+        }
+      },
       {
         $lookup: {
           from: "users",
@@ -427,13 +477,14 @@ app.get("/api/users/:userId/bookingevents", async (req, res) => {
       { $replaceRoot: { newRoot: "$events" } }
     ]);
 
-    // 2. Get participant events (events where user is a participant but not host)
+    // 2. Get participant events - exclude deleted
     const allParticipantEvents = await User.aggregate([
       { $match: { "events.participants.email": user.email } },
       { $unwind: "$events" },
       {
         $match: {
           "events.createdBy": { $ne: new mongoose.Types.ObjectId(userId) },
+          "events.isDeleted": { $ne: true },
           "events.participants": {
             $elemMatch: {
               $or: [
@@ -534,7 +585,9 @@ app.get("/api/users/:userId/events", async (req, res) => {
     if (!status) {
       const user = await User.findById(userId).select("events");
       if (!user) return res.status(404).json({ message: "User not found" });
-      return res.status(200).json(user.events);
+      // Filter out deleted events
+      const activeEvents = user.events.filter(event => !event.isDeleted);
+      return res.status(200).json(activeEvents);
     }
 
     // New filtering behavior when status is specified
@@ -545,6 +598,7 @@ app.get("/api/users/:userId/events", async (req, res) => {
         eventsFilter = {
           'dateTime': { $gt: now },
           'status': 'active',
+          'isDeleted': { $ne: true },
           'participants': {
             $elemMatch: {
               $or: [
@@ -559,6 +613,7 @@ app.get("/api/users/:userId/events", async (req, res) => {
       case 'pending':
         eventsFilter = {
           'dateTime': { $gt: now },
+          'isDeleted': { $ne: true },
           'participants': {
             $elemMatch: {
               userId: new mongoose.Types.ObjectId(userId),
@@ -585,7 +640,10 @@ app.get("/api/users/:userId/events", async (req, res) => {
         break;
       
       case 'past':
-        eventsFilter = { 'dateTime': { $lt: now } };
+        eventsFilter = { 
+          'dateTime': { $lt: now },
+          'isDeleted': { $ne: true }
+        };
         break;
       
       default:
@@ -727,7 +785,7 @@ app.patch("/api/events/:eventId/status", async (req, res) => {
   }
 });
 
-// Delete event
+// Delete event with synchronization for participants
 app.delete("/api/events/:eventId", async (req, res) => {
   try {
     const { userId } = req.body;
@@ -736,16 +794,54 @@ app.delete("/api/events/:eventId", async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    const result = await User.updateOne(
-      { _id: userId },
-      { $pull: { events: { _id: req.params.eventId } } }
-    );
-
-    if (result.modifiedCount === 0) {
+    // Get the event to be deleted
+    const hostUser = await User.findOne({ _id: userId, "events._id": req.params.eventId });
+    if (!hostUser) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    res.status(200).json({ message: "Event deleted successfully" });
+    const eventToDelete = hostUser.events.id(req.params.eventId);
+    if (!eventToDelete) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Mark event as deleted instead of removing it completely
+    // This allows participants to see the event as deleted
+    await User.updateOne(
+      { _id: userId, "events._id": req.params.eventId },
+      { 
+        $set: { 
+          "events.$.isDeleted": true,
+          "events.$.status": "deleted"
+        } 
+      }
+    );
+
+    // Also mark as deleted in all participants' participantEvents
+    const participantEmails = eventToDelete.participants
+      .filter(p => p.status !== 'host')
+      .map(p => p.email);
+
+    if (participantEmails.length > 0) {
+      await User.updateMany(
+        { email: { $in: participantEmails } },
+        { 
+          $set: { 
+            "participantEvents.$[elem].isDeleted": true,
+            "participantEvents.$[elem].status": "deleted"
+          }
+        },
+        { 
+          arrayFilters: [{ "elem._id": req.params.eventId }],
+          multi: true
+        }
+      );
+    }
+
+    res.status(200).json({ 
+      message: "Event deleted successfully",
+      removedFrom: participantEmails.length
+    });
   } catch (error) {
     console.error("Error deleting event:", error);
     res.status(500).json({ message: "Error deleting event" });
@@ -762,6 +858,19 @@ app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => 
       return res.status(400).json({ message: "Participation status is required" });
     }
 
+    // Check if event is deleted
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const participantEvent = user.participantEvents.id(eventId);
+    if (participantEvent && participantEvent.isDeleted) {
+      return res.status(403).json({ 
+        message: "This event has been deleted and cannot be modified" 
+      });
+    }
+
     // Get the event details from host
     const host = await User.findOne({ "events._id": eventId });
     if (!host) {
@@ -771,12 +880,6 @@ app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => 
     const event = host.events.id(eventId);
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
-    }
-
-    // Find the participant's email
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
     }
 
     // Update in participant's events array with meeting details if accepted
