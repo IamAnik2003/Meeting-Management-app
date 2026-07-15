@@ -8,6 +8,7 @@ import axios from "axios";
 import avatar from "../assets/avater.png";
 import accept from "../assets/accept.png";
 import reject from "../assets/reject.png";
+import linkIcon from "../assets/link.png";
 
 export default function Booking() {
   const [activeTab, setActiveTab] = useState("Upcoming");
@@ -17,6 +18,8 @@ export default function Booking() {
   const [currentParticipants, setCurrentParticipants] = useState([]);
   const VITE_BACK_URL = import.meta.env.VITE_BACK_URL;
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showMeetingDetails, setShowMeetingDetails] = useState({});
+  const [meetingDetails, setMeetingDetails] = useState({});
 
   const [allEvents, setAllEvents] = useState({
     upcoming: [],
@@ -58,7 +61,6 @@ export default function Booking() {
         participants.map(async (participant) => {
           let enrichedParticipant = { ...participant };
 
-          // If participant already has userId with _id, assume it has enough info
           if (!participant.userId || !participant.userId._id) {
             try {
               const response = await axios.get(
@@ -76,7 +78,6 @@ export default function Booking() {
             }
           }
 
-          // Fetch participation status from the event's participant list if not already present
           const event = allEvents.participantEvents.find(e => e._id === eventId);
           if (event && event.participants) {
             const participantInEvent = event.participants.find(p => 
@@ -94,6 +95,58 @@ export default function Booking() {
       console.error("Error fetching participant details:", error);
       return participants;
     }
+  };
+
+  const fetchMeetingDetails = async (eventId) => {
+    try {
+      const userId = localStorage.getItem("userID");
+      const response = await axios.get(
+        `${VITE_BACK_URL}/api/events/${eventId}/meeting-details`,
+        { params: { userId } }
+      );
+      
+      if (response.data.hasAccess) {
+        setMeetingDetails(prev => ({
+          ...prev,
+          [eventId]: {
+            meetingLink: response.data.meetingLink,
+            password: response.data.password,
+            isHost: response.data.isHost
+          }
+        }));
+        setShowMeetingDetails(prev => ({
+          ...prev,
+          [eventId]: true
+        }));
+      } else {
+        toast.error("You need to accept the invitation to view meeting details");
+      }
+    } catch (error) {
+      console.error("Error fetching meeting details:", error);
+      if (error.response?.status === 403) {
+        toast.error("You need to accept the invitation to view meeting details");
+      } else {
+        toast.error("Failed to fetch meeting details");
+      }
+    }
+  };
+
+  const toggleMeetingDetails = (eventId) => {
+    setShowMeetingDetails(prev => ({
+      ...prev,
+      [eventId]: !prev[eventId]
+    }));
+    
+    // Fetch details if not already loaded
+    if (!meetingDetails[eventId]) {
+      fetchMeetingDetails(eventId);
+    }
+  };
+
+  const copyToClipboard = (text, type) => {
+    navigator.clipboard.writeText(text)
+      .then(() => toast.success(`${type} copied to clipboard`))
+      .catch(() => toast.error(`Failed to copy ${type}`));
   };
 
   const updateParticipantStatus = async (eventId, status) => {
@@ -330,6 +383,56 @@ export default function Booking() {
     fetchAllEvents();
   }, [VITE_BACK_URL, showParticipantsDialog]);
 
+  // Component to display meeting details
+  const MeetingDetails = ({ eventId }) => {
+    const details = meetingDetails[eventId];
+    if (!details) return null;
+
+    return (
+      <div className={styles.meetingDetails}>
+        <div className={styles.meetingLinkContainer}>
+          <span className={styles.meetingLabel}>Meeting Link:</span>
+          <div className={styles.linkWrapper}>
+            <a 
+              href={details.meetingLink} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className={styles.meetingLink}
+            >
+              {details.meetingLink}
+            </a>
+            <button 
+              className={styles.copyButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                copyToClipboard(details.meetingLink, "Meeting link");
+              }}
+            >
+              📋
+            </button>
+          </div>
+        </div>
+        {details.password && (
+          <div className={styles.passwordContainer}>
+            <span className={styles.passwordLabel}>Password:</span>
+            <div className={styles.passwordWrapper}>
+              <span className={styles.password}>{details.password}</span>
+              <button 
+                className={styles.copyButton}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(details.password, "Password");
+                }}
+              >
+                📋
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const UpcomingComponent = () => {
     if (isLoading) return <div className={styles.loading}>Loading events...</div>;
     if (error) return <div className={styles.error}>Error: {error}</div>;
@@ -339,34 +442,52 @@ export default function Booking() {
 
     return (
       <div className={styles.upcomingCon}>
-        {allEvents.upcoming.map((event) => (
-          <div key={event._id} className={styles.upcoming}>
-            <div className={styles.p1}>
-              <div className={styles.date}>{formatDate(event.dateTime)}</div>
-              <div className={styles.description}>{event.eventTopic}</div>
-              <div className={styles.time}>
-                {formatTime(event.dateTime, event.duration)}
+        {allEvents.upcoming.map((event) => {
+          const isParticipant = event.participationStatus === 'accepted';
+          const isHost = event.createdBy === localStorage.getItem("userID");
+          const canViewMeeting = isHost || isParticipant;
+
+          return (
+            <div key={event._id} className={styles.upcoming}>
+              <div className={styles.p1}>
+                <div className={styles.date}>{formatDate(event.dateTime)}</div>
+                <div className={styles.description}>{event.eventTopic}</div>
+                <div className={styles.time}>
+                  {formatTime(event.dateTime, event.duration)}
+                </div>
+                <div className={styles.teamName}>
+                  {event.createdBy === localStorage.getItem("userID")
+                    ? `You and ${event.teamName || "Team"}`
+                    : `Invited by ${event.hostName}`}
+                </div>
               </div>
-              <div className={styles.teamName}>
-                {event.createdBy === localStorage.getItem("userID")
-                  ? `You and ${event.teamName || "Team"}`
-                  : `Invited by ${event.hostName}`}
+              <div className={styles.p2}>
+                <div className={styles.accepted}>
+                  <p>Accepted</p>
+                </div>
+                <div
+                  className={styles.people}
+                  onClick={() => showParticipants(event.participants || [], event._id)}
+                >
+                  <img src={people} alt="" />
+                  <p>{event.participants?.length || 0} people</p>
+                </div>
+                {canViewMeeting && (
+                  <button
+                    className={styles.meetingButton}
+                    onClick={() => toggleMeetingDetails(event._id)}
+                  >
+                    <img src={linkIcon} alt="Meeting" />
+                    <span>Meeting</span>
+                  </button>
+                )}
               </div>
+              {showMeetingDetails[event._id] && (
+                <MeetingDetails eventId={event._id} />
+              )}
             </div>
-            <div className={styles.p2}>
-              <div className={styles.accepted}>
-                <p>Accepted</p>
-              </div>
-              <div
-                className={styles.people}
-                onClick={() => showParticipants(event.participants || [], event._id)}
-              >
-                <img src={people} alt="" />
-                <p>{event.participants?.length || 0} people</p>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
