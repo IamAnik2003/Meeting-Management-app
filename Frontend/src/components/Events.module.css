@@ -1,17 +1,14 @@
-
-
 .link-container {
     width: 100%;
     display: flex;
     margin-top: 4%;
     font-family: Poppins;
-  overflow: hidden;
-
-  height: 78dvh;
-  
+    overflow: hidden;
+    height: 78dvh;
+    position: relative; /* Added for proper positioning of children */
 }
 
-.createbtn{
+.createbtn {
     position: absolute;
     top: 62%;
     left: 3%;
@@ -22,13 +19,17 @@
     height: 6%;
     border-radius: 25px;
     font-size: 1em;
-    cursor: pointer; /* Added for better UX */
+    cursor: pointer;
     font-weight: 500;
     z-index: 1000;
-    
+    transition: background 0.3s ease; /* Added for better UX */
 }
 
-.eventsContainer{
+.createbtn:hover {
+    background: #1558b0; /* Added hover effect */
+}
+
+.eventsContainer {
     width: 100%;
     height: 100%;
     display: flex;
@@ -36,323 +37,227 @@
     gap: 2%;
     overflow: auto;
     overflow-x: hidden;
-    
-    
+    padding: 10px 0; /* Added padding */
 }
-.events{
 
+.events {
     width: 32%;
     height: 14em;
     border-radius: 18px;
     margin-top: 2%;
     background-color: white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-
+    transition: transform 0.3s ease, box-shadow 0.3s ease; /* Added smooth hover */
+    position: relative; /* Added for proper positioning */
 }
-.inner{
+
+.events:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.inner {
     width: 100%;
-    height:14%;
+    height: 14%;
     border-radius: 18px 18px 0px 0px;
     margin-top: -0.4%;
 }
-.titleContain{
+
+.titleContain {
     display: flex;
     width: 100%;
     padding: 6%;
     justify-content: space-between;
     height: 40%;
 }
-.titleContain p{
+
+.titleContain p {
     font-size: 1.3em;
     font-weight: 500;
+    margin: 0; /* Added to remove default margin */
 }
-.date{
+
+.titleContain p:last-child {
+    cursor: pointer;
+    padding: 0 8px;
+    transition: color 0.2s;
+}
+
+.titleContain p:last-child:hover {
+    color: #1877F2;
+}
+
+.date {
     width: 100%;
     padding-left: 6%;
     font-size: 0.8em;
+    color: #666;
 }
-.timeDuration{
+
+.timeDuration {
     width: 100%;
     padding-left: 6%;
     font-size: 0.8em;
     color: #1877F2;
 }
-.description{
+
+.description {
     width: 100%;
     padding-left: 6%;
     font-size: 0.6em;
     color: #7E7E7E;
-    
 }
-  .conflickCon{
+
+.conflickCon {
     margin-left: 25%;
     width: 70%;
-    height:100%;
+    height: 100%;
     display: flex;
     column-gap: 5%;
-  }
-  .conflickCon img{
+    align-items: center; /* Added for vertical alignment */
+}
+
+.conflickCon img {
     width: 10%;
     height: 90%;
-  }
-  .conflict{
+}
+
+.conflict {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     background: white;
     border-radius: 20px;
     width: 80%;
-  }
+    padding: 2px 8px; /* Added padding */
+}
+
+.conflict p {
+    margin: 0; /* Remove default margin */
+    font-size: 0.7em;
+}
+
 /* Parent container for the switch, copy, and remove buttons */
 .btnC {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  height: 22%;
-  overflow: hidden; /* Added to clip overflow */
-  
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 22%;
+    overflow: hidden;
+    padding: 0 10px; /* Added padding */
 }
 
 /* Toggle button styling */
 .switch {
-  position: relative;
-
-  width: 16%; /* Fixed width */
-  height: 60%; /* Fixed height */
-  margin-right: 10%;
+    position: relative;
+    width: 16%;
+    height: 60%;
+    margin-right: 10%;
+    cursor: pointer;
 }
 
 .switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
+    opacity: 0;
+    width: 0;
+    height: 0;
 }
 
 .slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: 0.4s;
-  border: 2px solid #ccc; /* Completed border definition */
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 100%;
-  width: 50%;
-  left: 0;
-  bottom: 0;
-  background-color: white;
-  transition: 0.4s;
-}
-
-input:checked + .slider {
-  background-color: #2196f3;
-}
-
-input:focus + .slider {
-  box-shadow: 0 0 1px #2196f3;
-}
-
-input:checked + .slider:before {
-  transform: translateX(100%); /* Changed to percentage for dynamic scaling */
-}
-
-/* Corrected class name from .slider-round to .slider.round */
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
-.copy {
-  height: 50%;
-  width: 7%;
-  position: relative;
-  left: -6%;
-}
-
-.remove {
-  height: 50%;
-  width: 7%;
-  position: relative;
-  left: -3%;
-}
-  @media (max-width: 426px) {
-
-    .events{
-
-      width: 100%;
-      height: 14em;
-      border-radius: 18px;
-      margin-top: 2%;
-      background-color: white;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  
-  }
-  .createbtn{
     position: absolute;
-    top: 8%;
-    left: 50%;
-    border: none;
-    background: #1877F2;
-    color: white;
-    width: 30%;
-    height: 6%;
-    border-radius: 25px;
-    font-size: 1em;
-    cursor: pointer; /* Added for better UX */
-    font-weight: 500;
-    z-index: 1000;
-    
-}
-
-.link-container {
-  width: 100%;
-  display: flex;
-  margin-top: 4%;
-  font-family: Poppins;
-overflow: hidden;
-height: 60dvh;
-margin-top: 22%;
-
-}
-
-.eventsContainer{
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2%;
-  overflow: auto;
-  overflow-x: hidden;
-  
-  
-}
-.titleContain{
-  display: flex;
-  width: 100%;
-  padding: 6%;
-  justify-content: space-between;
-  height: 40%;
-}
-.titleContain p{
-  font-size: 1.3em;
-  font-weight: 500;
-}
-/* Parent container for the switch, copy, and remove buttons */
-.btnC {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  height: 22%;
-  overflow: hidden; /* Added to clip overflow */
-  
-}
-
-/* Toggle button styling */
-.switch {
-  position: relative;
-
-  width: 16%; /* Fixed width */
-  height: 60%; /* Fixed height */
-  margin-right: 10%;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: 0.4s;
-  border: 2px solid #ccc; /* Completed border definition */
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border: 2px solid #ccc;
 }
 
 .slider:before {
-  position: absolute;
-  content: "";
-  height: 100%;
-  width: 50%;
-  left: 0;
-  bottom: 0;
-  background-color: white;
-  transition: 0.4s;
+    position: absolute;
+    content: "";
+    height: 100%;
+    width: 50%;
+    left: 0;
+    bottom: 0;
+    background-color: white;
+    transition: 0.4s;
 }
 
 input:checked + .slider {
-  background-color: #2196f3;
+    background-color: #2196f3;
+    border-color: #2196f3;
 }
 
 input:focus + .slider {
-  box-shadow: 0 0 1px #2196f3;
+    box-shadow: 0 0 1px #2196f3;
 }
 
 input:checked + .slider:before {
-  transform: translateX(100%); /* Changed to percentage for dynamic scaling */
+    transform: translateX(100%);
 }
 
-/* Corrected class name from .slider-round to .slider.round */
 .slider.round {
-  border-radius: 34px;
+    border-radius: 34px;
 }
 
 .slider.round:before {
-  border-radius: 50%;
+    border-radius: 50%;
 }
 
 .copy {
-  height: 50%;
-  width: 7%;
-  position: relative;
-  left: -6%;
+    height: 50%;
+    width: 7%;
+    position: relative;
+    left: -6%;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.copy:hover {
+    transform: scale(1.1);
+    opacity: 0.8;
 }
 
 .remove {
-  height: 50%;
-  width: 7%;
-  position: relative;
-  left: -3%;
+    height: 50%;
+    width: 7%;
+    position: relative;
+    left: -3%;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
 }
-  }
-  /* Delete Confirmation Modal */
+
+.remove:hover {
+    transform: scale(1.1);
+    opacity: 0.8;
+}
+
+/* ============ DELETE CONFIRMATION MODAL ============ */
 .modalOverlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
     animation: fadeIn 0.3s ease-out;
+    backdrop-filter: blur(4px); /* Added for better visual effect */
 }
 
 .modalContent {
     background: white;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 0;
     width: 90%;
-    max-width: 400px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     animation: slideUp 0.3s ease-out;
+    overflow: hidden;
 }
 
 .modalHeader {
@@ -360,32 +265,37 @@ input:checked + .slider:before {
     justify-content: space-between;
     align-items: center;
     padding: 20px 24px;
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid #e8e8e8;
+    background: #fafafa;
 }
 
 .modalHeader h3 {
     margin: 0;
     font-size: 18px;
-    color: #333;
+    font-weight: 600;
+    color: #1a1a1a;
 }
 
 .modalCloseBtn {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 28px;
     cursor: pointer;
-    color: #666;
-    transition: color 0.2s;
+    color: #999;
+    transition: color 0.2s, transform 0.2s;
     padding: 0;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 50%;
 }
 
 .modalCloseBtn:hover {
     color: #333;
+    background: #f0f0f0;
+    transform: rotate(90deg);
 }
 
 .modalBody {
@@ -393,15 +303,21 @@ input:checked + .slider:before {
 }
 
 .modalBody p {
-    margin: 0 0 8px 0;
+    margin: 0 0 12px 0;
     color: #333;
     font-size: 16px;
+    line-height: 1.5;
 }
 
 .modalWarning {
-    color: #ff4444 !important;
+    color: #d32f2f !important;
     font-weight: 500;
     font-size: 14px !important;
+    background: #fff3f3;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border-left: 4px solid #d32f2f;
+    margin-top: 4px !important;
 }
 
 .modalFooter {
@@ -409,53 +325,60 @@ input:checked + .slider:before {
     justify-content: flex-end;
     gap: 12px;
     padding: 16px 24px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid #e8e8e8;
+    background: #fafafa;
 }
 
 .modalCancelBtn {
-    padding: 8px 20px;
+    padding: 10px 24px;
     background: #f0f0f0;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     color: #333;
     cursor: pointer;
     font-size: 14px;
-    transition: background 0.2s;
+    font-weight: 500;
+    transition: background 0.2s, transform 0.2s;
 }
 
 .modalCancelBtn:hover:not(:disabled) {
     background: #e0e0e0;
+    transform: scale(1.02);
 }
 
 .modalDeleteBtn {
-    padding: 8px 20px;
-    background: #ff4444;
+    padding: 10px 24px;
+    background: #d32f2f;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     color: white;
     cursor: pointer;
     font-size: 14px;
-    transition: background 0.2s;
+    font-weight: 500;
+    transition: background 0.2s, transform 0.2s;
 }
 
 .modalDeleteBtn:hover:not(:disabled) {
-    background: #cc0000;
+    background: #b71c1c;
+    transform: scale(1.02);
 }
 
 .modalCancelBtn:disabled,
 .modalDeleteBtn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    transform: none !important;
 }
 
+/* Modal Animations */
 @keyframes slideUp {
     from {
         opacity: 0;
-        transform: translateY(30px);
+        transform: translateY(30px) scale(0.95);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -468,29 +391,132 @@ input:checked + .slider:before {
     }
 }
 
-/* Responsive for modal */
-@media (max-width: 456px) {
+/* ============ RESPONSIVE DESIGN ============ */
+@media (max-width: 426px) {
+    .link-container {
+        width: 100%;
+        display: flex;
+        margin-top: 22%;
+        font-family: Poppins;
+        overflow: hidden;
+        height: 60dvh;
+    }
+
+    .events {
+        width: 100%;
+        height: 14em;
+        border-radius: 18px;
+        margin-top: 2%;
+        background-color: white;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .createbtn {
+        position: absolute;
+        top: -10%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: none;
+        background: #1877F2;
+        color: white;
+        width: 50%;
+        height: 6%;
+        border-radius: 25px;
+        font-size: 1em;
+        cursor: pointer;
+        font-weight: 500;
+        z-index: 1000;
+    }
+
+    .eventsContainer {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 2%;
+        overflow: auto;
+        overflow-x: hidden;
+        margin-top: 10%;
+    }
+
+    .titleContain {
+        display: flex;
+        width: 100%;
+        padding: 6%;
+        justify-content: space-between;
+        height: 40%;
+    }
+
+    .titleContain p {
+        font-size: 1.1em;
+        font-weight: 500;
+    }
+
+    /* Modal Mobile Styles */
     .modalContent {
         width: 95%;
         margin: 20px;
+        max-width: 380px;
     }
-    
+
+    .modalHeader {
+        padding: 16px 20px;
+    }
+
     .modalHeader h3 {
         font-size: 16px;
     }
-    
+
+    .modalBody {
+        padding: 20px;
+    }
+
     .modalBody p {
         font-size: 14px;
     }
-    
+
     .modalFooter {
-        flex-direction: column;
+        flex-direction: column-reverse;
         gap: 8px;
+        padding: 16px 20px;
     }
-    
+
     .modalCancelBtn,
     .modalDeleteBtn {
         width: 100%;
         padding: 12px;
+        font-size: 15px;
+    }
+
+    .switch {
+        width: 20%;
+        height: 50%;
+        margin-right: 5%;
+    }
+
+    .copy, .remove {
+        width: 10%;
+        height: 40%;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 375px) {
+    .titleContain p {
+        font-size: 0.9em;
+    }
+
+    .date, .timeDuration {
+        font-size: 0.7em;
+    }
+
+    .modalContent {
+        width: 98%;
+        max-width: 340px;
+    }
+
+    .createbtn {
+        width: 60%;
+        font-size: 0.8em;
     }
 }
