@@ -330,3 +330,167 @@ input:checked + .slider:before {
   left: -3%;
 }
   }
+  /* Delete Confirmation Modal */
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modalContent {
+    background: white;
+    border-radius: 12px;
+    padding: 0;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.3s ease-out;
+}
+
+.modalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modalHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.modalCloseBtn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.2s;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modalCloseBtn:hover {
+    color: #333;
+}
+
+.modalBody {
+    padding: 24px;
+}
+
+.modalBody p {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.modalWarning {
+    color: #ff4444 !important;
+    font-weight: 500;
+    font-size: 14px !important;
+}
+
+.modalFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.modalCancelBtn {
+    padding: 8px 20px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 6px;
+    color: #333;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.modalCancelBtn:hover:not(:disabled) {
+    background: #e0e0e0;
+}
+
+.modalDeleteBtn {
+    padding: 8px 20px;
+    background: #ff4444;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.modalDeleteBtn:hover:not(:disabled) {
+    background: #cc0000;
+}
+
+.modalCancelBtn:disabled,
+.modalDeleteBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Responsive for modal */
+@media (max-width: 456px) {
+    .modalContent {
+        width: 95%;
+        margin: 20px;
+    }
+    
+    .modalHeader h3 {
+        font-size: 16px;
+    }
+    
+    .modalBody p {
+        font-size: 14px;
+    }
+    
+    .modalFooter {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .modalCancelBtn,
+    .modalDeleteBtn {
+        width: 100%;
+        padding: 12px;
+    }
+}
