@@ -18,9 +18,44 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Helper function to get user by email
+// ============ HELPER FUNCTIONS ============
 const getUserByEmail = async (email) => {
   return await User.findOne({ email }).select('_id firstname lastname');
+};
+
+const isValidUrl = (string) => {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+const validateEventData = (data) => {
+  const requiredFields = {
+    userId: "User ID",
+    eventTopic: "Event topic",
+    hostName: "Host name",
+    dateTime: "Date and time",
+    timezone: "Timezone",
+    duration: "Duration",
+    meetingLink: "Meeting link"
+  };
+
+  const missingFields = Object.entries(requiredFields)
+    .filter(([field]) => !data[field])
+    .map(([_, name]) => name);
+
+  if (missingFields.length > 0) {
+    return { valid: false, message: `Missing required fields: ${missingFields.join(', ')}` };
+  }
+
+  if (data.meetingLink && !isValidUrl(data.meetingLink)) {
+    return { valid: false, message: "Invalid meeting link format. Please provide a valid URL." };
+  }
+
+  return { valid: true };
 };
 
 // ============ AUTHENTICATION ROUTES ============
@@ -30,59 +65,74 @@ app.get("/", (req, res) => {
 
 app.post("/api/register", async (req, res) => {
   const { firstname, lastname, email, password } = req.body;
-  const userExist = await User.findOne({ email });
-  if (userExist) {
-    return res.status(400).json({ message: "User already exists" });
-  }
-  const hashedPassword = await bcrypt.hash(password, 10);
+  
+  try {
+    const userExist = await User.findOne({ email });
+    if (userExist) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+    
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  const newUser = new User({
-    firstname,
-    lastname,
-    email,
-    password: hashedPassword,
-  });
-  await newUser.save();
-  res.status(201).json({ message: "User registered successfully" });
+    const newUser = new User({
+      firstname,
+      lastname,
+      email,
+      password: hashedPassword,
+    });
+    await newUser.save();
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error("Registration error:", error);
+    res.status(500).json({ message: "Error registering user" });
+  }
 });
 
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
-  const newuser = await User.findOne({ email });
+  
+  try {
+    const newuser = await User.findOne({ email });
 
-  if (!newuser) {
-    return res.status(404).json({ message: "User not found" });
+    if (!newuser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isMatch = await bcrypt.compare(password, newuser.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const payload = {
+      firstname: newuser.firstname,
+      email: newuser.email,
+      password: newuser.password,
+      username: newuser.username,
+    };
+    const token = jwt.sign(payload, secret, { expiresIn: "1d" });
+
+    res.status(200).json({
+      token,
+      fullname: newuser.firstname + " " + newuser.lastname,
+      username: newuser.username,
+      email: newuser.email,
+      userID: newuser._id,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ message: "Error logging in" });
   }
-
-  const isMatch = await bcrypt.compare(password, newuser.password);
-  if (!isMatch) {
-    return res.status(400).json({ message: "Invalid credentials" });
-  }
-
-  const payload = {
-    firstname: newuser.firstname,
-    email: newuser.email,
-    password: newuser.password,
-    username: newuser.username,
-  };
-  const token = jwt.sign(payload, secret, { expiresIn: "1d" });
-
-  res.status(200).json({
-    token,
-    fullname: newuser.firstname + " " + newuser.lastname,
-    username: newuser.username,
-    email: newuser.email,
-    userID: newuser._id,
-  });
 });
 
 app.patch("/api/updateprofile", async (req, res) => {
   const { email, firstname, lastname, password, newEmail } = req.body;
+  
   try {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+    
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);
       user.password = hashedPassword;
@@ -93,7 +143,7 @@ app.patch("/api/updateprofile", async (req, res) => {
     await user.save();
     res.status(200).json({ message: "Profile updated successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Profile update error:", error);
     res.status(500).json({ message: "Something went wrong" });
   }
 });
@@ -141,32 +191,17 @@ app.post("/api/events", async (req, res) => {
       timezone,
       duration,
       bannerColor,
-      meetingLink,  // Changed from 'link' to match frontend
-      participants, // Now expecting array from frontend
+      meetingLink,
+      participants,
       password,
       teamName,
-      dateTime      // Added to accept ISO string from frontend
+      dateTime
     } = req.body;
 
     // Validate required fields
-    const requiredFields = {
-      userId: "User ID",
-      eventTopic: "Event topic",
-      hostName: "Host name",
-      dateTime: "Date and time",
-      timezone: "Timezone",
-      duration: "Duration",
-      meetingLink: "Meeting link"
-    };
-
-    const missingFields = Object.entries(requiredFields)
-      .filter(([field]) => !req.body[field])
-      .map(([_, name]) => name);
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        message: `Missing required fields: ${missingFields.join(', ')}`
-      });
+    const validation = validateEventData(req.body);
+    if (!validation.valid) {
+      return res.status(400).json({ message: validation.message });
     }
 
     // Verify user exists
@@ -175,30 +210,56 @@ app.post("/api/events", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Check for duplicate meeting link for this user
+    const existingEventWithLink = user.events.find(e => 
+      e.meetingLink && e.meetingLink === meetingLink
+    );
+    
+    if (existingEventWithLink) {
+      return res.status(400).json({ 
+        message: "This meeting link is already associated with another event" 
+      });
+    }
+
     // Process participants - ensure host is included and marked
-    const processedParticipants = participants.map(p => ({
+    const processedParticipants = (participants || []).map(p => ({
       email: p.email,
       status: p.isHost ? 'host' : 'pending',
       userId: p.isHost ? userId : null
     }));
 
+    // Ensure host is always included
+    const hasHost = processedParticipants.some(p => p.status === 'host');
+    if (!hasHost) {
+      processedParticipants.push({
+        email: user.email,
+        status: 'host',
+        userId: userId
+      });
+    }
+
     // Create new event object
     const newEvent = {
       eventTopic,
-      hostName,
+      hostName: hostName || `${user.firstname} ${user.lastname}`,
       description: description || "",
-      dateTime: new Date(dateTime), // Use ISO string from frontend
-      timezone,
-      duration: Number(duration),
+      dateTime: new Date(dateTime || Date.now()),
+      timezone: timezone || "IST",
+      duration: Number(duration || 1),
       bannerColor: bannerColor || "#342B26",
-      meetingLink,
-      participants: processedParticipants,
+      meetingLink: meetingLink,
       password: password || "",
       teamName: teamName || "Team A Meeting-1",
       createdBy: userId,
       status: 'active',
-      createdAt: new Date()
+      isActive: true,
+      createdAt: new Date(),
+      participants: processedParticipants
     };
+
+    // Log the event being created
+    console.log("Creating event with meeting link:", meetingLink);
+    console.log("Event password:", password);
 
     // Add to user's events
     const result = await User.findByIdAndUpdate(
@@ -206,6 +267,10 @@ app.post("/api/events", async (req, res) => {
       { $push: { events: newEvent } },
       { new: true }
     );
+
+    if (!result) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     // Get the newly added event (last one in array)
     const createdEvent = result.events[result.events.length - 1];
@@ -221,6 +286,91 @@ app.post("/api/events", async (req, res) => {
       message: "Error creating event", 
       error: error.message 
     });
+  }
+});
+
+// Get single event by ID
+app.get("/api/events/:eventId", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const event = user.events.id(req.params.eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    res.status(200).json(event);
+  } catch (error) {
+    console.error("Error getting event:", error);
+    res.status(500).json({ message: "Error getting event" });
+  }
+});
+
+// Get meeting details with access control
+app.get("/api/events/:eventId/meeting-details", async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const eventId = req.params.eventId;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if user is the host
+    const hostedEvent = user.events.id(eventId);
+    if (hostedEvent) {
+      return res.status(200).json({
+        meetingLink: hostedEvent.meetingLink,
+        password: hostedEvent.password || "",
+        isHost: true,
+        hasAccess: true
+      });
+    }
+
+    // Check participant events
+    const participantEvent = user.participantEvents.id(eventId);
+    if (participantEvent) {
+      // Only return meeting details if accepted
+      if (participantEvent.participationStatus === 'accepted') {
+        // Get the full event details from host's events
+        const host = await User.findOne({ "events._id": eventId });
+        if (host) {
+          const event = host.events.id(eventId);
+          if (event) {
+            return res.status(200).json({
+              meetingLink: event.meetingLink,
+              password: event.password || "",
+              isHost: false,
+              hasAccess: true
+            });
+          }
+        }
+      }
+      
+      return res.status(403).json({ 
+        message: "You need to accept the invitation to view meeting details",
+        hasAccess: false
+      });
+    }
+
+    return res.status(404).json({ message: "Event not found" });
+  } catch (error) {
+    console.error("Error getting meeting details:", error);
+    res.status(500).json({ message: "Error getting meeting details" });
   }
 });
 
@@ -335,22 +485,27 @@ app.get("/api/users/:userId/bookingevents", async (req, res) => {
     ]);
 
     // 3. Update user's participantEvents array (only with new events)
-  // 3. Update user's participantEvents array (only with new events)
-if (allParticipantEvents.length > 0) {
-  const newParticipantEvents = allParticipantEvents.filter(event => 
-    !user.participantEvents.some(pe => pe._id.equals(event._id))
-  ).map(event => ({
-    ...event,
-    participationStatus: event.participationStatus
-  }));
+    if (allParticipantEvents.length > 0) {
+      const newParticipantEvents = allParticipantEvents.filter(event => 
+        !user.participantEvents.some(pe => pe._id.equals(event._id))
+      ).map(event => ({
+        ...event,
+        participationStatus: event.participationStatus,
+        // Only include meeting details if accepted
+        ...(event.participationStatus === 'accepted' ? {
+          meetingLink: event.meetingLink,
+          password: event.password || ""
+        } : {})
+      }));
 
-  if (newParticipantEvents.length > 0) {
-    await User.updateOne(
-      { _id: userId },
-      { $addToSet: { participantEvents: { $each: newParticipantEvents } } }
-    );
-  }
-}
+      if (newParticipantEvents.length > 0) {
+        await User.updateOne(
+          { _id: userId },
+          { $addToSet: { participantEvents: { $each: newParticipantEvents } } }
+        );
+      }
+    }
+    
     // 4. Get the updated participantEvents from the user document
     const updatedUser = await User.findById(userId);
     
@@ -367,6 +522,7 @@ if (allParticipantEvents.length > 0) {
     });
   }
 });
+
 // Get all events with optional filtering (maintains backward compatibility)
 app.get("/api/users/:userId/events", async (req, res) => {
   try {
@@ -393,7 +549,7 @@ app.get("/api/users/:userId/events", async (req, res) => {
             $elemMatch: {
               $or: [
                 { userId: new mongoose.Types.ObjectId(userId), status: 'accepted' },
-                { userId:new mongoose.Types.ObjectId(userId), status: 'host' }
+                { userId: new mongoose.Types.ObjectId(userId), status: 'host' }
               ]
             }
           }
@@ -419,7 +575,7 @@ app.get("/api/users/:userId/events", async (req, res) => {
             { 
               'participants': {
                 $elemMatch: {
-                  userId:new mongoose.Types.ObjectId(userId),
+                  userId: new mongoose.Types.ObjectId(userId),
                   status: 'rejected'
                 }
               }
@@ -463,11 +619,22 @@ app.put("/api/events/:eventId", async (req, res) => {
   try {
     const { userId, ...updateData } = req.body;
     
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
     if (updateData.dateTime) {
       updateData.dateTime = new Date(updateData.dateTime);
     }
 
-    // Get the existing event first to preserve createdBy
+    // Validate meeting link if provided
+    if (updateData.meetingLink && !isValidUrl(updateData.meetingLink)) {
+      return res.status(400).json({ 
+        message: "Invalid meeting link format. Please provide a valid URL." 
+      });
+    }
+
+    // Get the existing event first to preserve createdBy and check for duplicates
     const user = await User.findOne({ _id: userId, "events._id": req.params.eventId });
     if (!user) {
       return res.status(404).json({ message: "User or event not found" });
@@ -476,6 +643,20 @@ app.put("/api/events/:eventId", async (req, res) => {
     const existingEvent = user.events.id(req.params.eventId);
     if (!existingEvent) {
       return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Check for duplicate meeting link (excluding the current event)
+    if (updateData.meetingLink) {
+      const duplicateEvent = user.events.find(e => 
+        e.meetingLink === updateData.meetingLink && 
+        e._id.toString() !== req.params.eventId
+      );
+      
+      if (duplicateEvent) {
+        return res.status(400).json({ 
+          message: "This meeting link is already associated with another event" 
+        });
+      }
     }
 
     // Preserve the createdBy field from the existing event
@@ -487,6 +668,10 @@ app.put("/api/events/:eventId", async (req, res) => {
       { new: true }
     );
 
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
     res.status(200).json({ 
       message: "Event updated successfully",
       event: updatedUser.events.id(req.params.eventId)
@@ -496,6 +681,7 @@ app.put("/api/events/:eventId", async (req, res) => {
     res.status(500).json({ message: "Error updating event" });
   }
 });
+
 // Update event status (active/inactive)
 app.patch("/api/events/:eventId/status", async (req, res) => {
   try {
@@ -545,6 +731,11 @@ app.patch("/api/events/:eventId/status", async (req, res) => {
 app.delete("/api/events/:eventId", async (req, res) => {
   try {
     const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
     const result = await User.updateOne(
       { _id: userId },
       { $pull: { events: { _id: req.params.eventId } } }
@@ -561,29 +752,60 @@ app.delete("/api/events/:eventId", async (req, res) => {
   }
 });
 
+// Update participant event status
 app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => {
   try {
     const { userId, eventId } = req.params;
     const { participationStatus } = req.body;
 
-    // Update in participant's events array
+    if (!participationStatus) {
+      return res.status(400).json({ message: "Participation status is required" });
+    }
+
+    // Get the event details from host
+    const host = await User.findOne({ "events._id": eventId });
+    if (!host) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    const event = host.events.id(eventId);
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
+
+    // Find the participant's email
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update in participant's events array with meeting details if accepted
+    const updateData = {
+      "participantEvents.$.participationStatus": participationStatus
+    };
+
+    // Only add meeting details if accepted
+    if (participationStatus === 'accepted') {
+      updateData["participantEvents.$.meetingLink"] = event.meetingLink;
+      updateData["participantEvents.$.password"] = event.password || "";
+    } else {
+      updateData["participantEvents.$.meetingLink"] = null;
+      updateData["participantEvents.$.password"] = null;
+    }
+
     await User.updateOne(
       { 
         _id: userId,
         "participantEvents._id": eventId 
       },
-      { 
-        $set: { 
-          "participantEvents.$.participationStatus": participationStatus 
-        } 
-      }
+      { $set: updateData }
     );
 
     // Also update in host's events participants array
     await User.updateOne(
       { 
         "events._id": eventId,
-        "events.participants.email": req.user.email 
+        "events.participants.email": user.email 
       },
       { 
         $set: { 
@@ -593,12 +815,18 @@ app.patch('/api/users/:userId/participant-events/:eventId', async (req, res) => 
     );
 
     // Return updated participant events
-    const user = await User.findById(userId);
-    res.status(200).json(user.participantEvents);
+    const updatedUser = await User.findById(userId);
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(updatedUser.participantEvents);
   } catch (error) {
+    console.error("Error updating participant event:", error);
     res.status(500).json({ message: error.message });
   }
 });
+
 // GET user by email
 app.get('/api/users/by-email', async (req, res) => {
   try {
@@ -625,22 +853,21 @@ app.get('/api/users/by-email', async (req, res) => {
   }
 });
 
-// In your user routes file
-app.patch('/api/users/:userId/categorized-events',async (req, res) => {
-  
+// Update categorized events
+app.patch('/api/users/:userId/categorized-events', async (req, res) => {
   try {
-    const { upcoming, pending, canceled, past } = await  req.body;
-    
+    const { upcomingEvents, pendingEvents, canceledEvents, pastEvents, participantEvents } = req.body;
     const userId = req.params.userId;
 
     const user = await User.findByIdAndUpdate(
       userId,
       {
         $set: {
-          upcoming,
-          pending,
-          canceled,
-          past
+          upcoming: upcomingEvents || [],
+          pending: pendingEvents || [],
+          canceled: canceledEvents || [],
+          past: pastEvents || [],
+          participantEvents: participantEvents || []
         }
       },
       { new: true }
@@ -652,11 +879,13 @@ app.patch('/api/users/:userId/categorized-events',async (req, res) => {
 
     res.status(200).json(user);
   } catch (error) {
+    console.error("Error updating categorized events:", error);
     res.status(500).json({ message: error.message });
   }
 });
+
+// Update user availability
 app.put('/api/users/:userId/availability', async (req, res) => {
-  
   try {
     const { weeklyHours, timezone } = req.body;
 
@@ -716,7 +945,6 @@ app.put('/api/users/:userId/availability', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    
     res.json(updatedUser.availability);
   } catch (error) {
     console.error("Error updating availability:", error);
@@ -724,6 +952,7 @@ app.put('/api/users/:userId/availability', async (req, res) => {
   }
 });
 
+// Get user availability
 app.get('/api/users/:userId/availability', async (req, res) => {
   try {
     const user = await User.findById(req.params.userId).select('availability');
@@ -736,10 +965,21 @@ app.get('/api/users/:userId/availability', async (req, res) => {
       timezone: "Indian Time Standard"
     });
   } catch (error) {
+    console.error("Error getting availability:", error);
     res.status(500).json({ error: 'Server error' });
   }
 });
 
+// ============ ERROR HANDLING MIDDLEWARE ============
+app.use((err, req, res, next) => {
+  console.error("Unhandled error:", err);
+  res.status(500).json({ 
+    message: "Internal server error",
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
+
+// ============ START SERVER ============
 app.listen(port, () => {
   console.log(`Server is running on port http://localhost:${port}`);
 });
