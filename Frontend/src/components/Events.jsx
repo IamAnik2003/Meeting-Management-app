@@ -5,7 +5,7 @@ import styles from "./Events.module.css";
 import copy from "../assets/copy.png";
 import remove from "../assets/delete.png";
 import DiolougeBox from "./DiolougeBox";
-import conflickt from "../assets/conflickt.png"
+import conflickt from "../assets/conflickt.png";
 
 export default function Events() {
   const [isDiolougeOpen, setIsDiolougeOpen] = useState(false);
@@ -14,6 +14,9 @@ export default function Events() {
   const [error, setError] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
   const [activeStates, setActiveStates] = useState({});
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const VITE_BACK_URL = import.meta.env.VITE_BACK_URL;
 
   // Calculate conflicts between events
@@ -51,10 +54,12 @@ export default function Events() {
         if (!userId) throw new Error("User not logged in");
         
         const response = await axios.get(`${VITE_BACK_URL}/api/users/${userId}/events`);
-        setEvents(response.data);
+        // Filter out deleted events
+        const activeEvents = response.data.filter(event => !event.isDeleted);
+        setEvents(activeEvents);
         
         const initialActiveStates = {};
-        response.data.forEach(event => {
+        activeEvents.forEach(event => {
           initialActiveStates[event._id] = event.isActive !== false;
         });
         setActiveStates(initialActiveStates);
@@ -67,10 +72,10 @@ export default function Events() {
     };
 
     fetchEvents();
-  }, [isDiolougeOpen]);
+  }, [isDiolougeOpen, VITE_BACK_URL]);
 
   const handleToggle = async (eventId, e) => {
-    e.stopPropagation(); // Prevent event container click
+    e.stopPropagation();
     try {
       const userId = localStorage.getItem("userID");
       const newActiveState = !activeStates[eventId];
@@ -90,30 +95,58 @@ export default function Events() {
     }
   };
 
-  const handleDelete = async (eventId, e) => {
-    e.stopPropagation(); 
+  const handleDeleteClick = (eventId, e) => {
+    e.stopPropagation();
+    setEventToDelete(eventId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!eventToDelete) return;
     
     try {
+      setIsDeleting(true);
       const userId = localStorage.getItem("userID");
-      await axios.delete(`${VITE_BACK_URL}/api/events/${eventId}`, {
+      
+      // Send delete request to backend
+      await axios.delete(`${VITE_BACK_URL}/api/events/${eventToDelete}`, {
         data: { userId }
       });
       
-      setEvents(prev => prev.filter(event => event._id !== eventId));
+      // Remove from local state
+      setEvents(prev => prev.filter(event => event._id !== eventToDelete));
+      
+      // Remove from active states
+      setActiveStates(prev => {
+        const newState = { ...prev };
+        delete newState[eventToDelete];
+        return newState;
+      });
+      
       toast.success("Event deleted successfully");
+      setShowDeleteConfirm(false);
+      setEventToDelete(null);
     } catch (err) {
+      console.error("Delete error:", err);
       toast.error(err.response?.data?.message || "Failed to delete event");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
+  const cancelDelete = () => {
+    setShowDeleteConfirm(false);
+    setEventToDelete(null);
+  };
+
   const handleEdit = (event, e) => {
-    e.stopPropagation(); // Prevent event container click
+    e.stopPropagation();
     setEditingEvent(event);
     setIsDiolougeOpen(true);
   };
 
   const handleCopyLink = (link, e) => {
-    e.stopPropagation(); // Prevent event container click
+    e.stopPropagation();
     navigator.clipboard.writeText(link)
       .then(() => toast.success("Link copied to clipboard"))
       .catch(() => toast.error("Failed to copy link"));
@@ -166,6 +199,7 @@ export default function Events() {
             editingEvent={editingEvent}
           />
         )}
+        
         {!isDiolougeOpen && (
           <div className={styles.eventsContainer}>
             {events.length > 0 ? (
@@ -184,7 +218,7 @@ export default function Events() {
                   >
                     {conflicts[event._id] && (
                       <div className={styles.conflickCon}>
-                        <img src={conflickt} alt="" />
+                        <img src={conflickt} alt="Conflict" />
                         <div className={styles.conflict} style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
                           <p>Conflict of timing</p>
                         </div>
@@ -238,7 +272,7 @@ export default function Events() {
                       className={styles.remove} 
                       src={remove} 
                       alt="Delete" 
-                      onClick={(e) => handleDelete(event._id, e)}
+                      onClick={(e) => handleDeleteClick(event._id, e)}
                       style={{ cursor: "pointer" }}
                     />
                   </div>
@@ -252,6 +286,38 @@ export default function Events() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className={styles.modalOverlay} onClick={cancelDelete}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3>Confirm Delete</h3>
+              <button className={styles.modalCloseBtn} onClick={cancelDelete}>×</button>
+            </div>
+            <div className={styles.modalBody}>
+              <p>Are you sure you want to delete this event?</p>
+              <p className={styles.modalWarning}>This action cannot be undone and will be reflected for all participants.</p>
+            </div>
+            <div className={styles.modalFooter}>
+              <button 
+                className={styles.modalCancelBtn} 
+                onClick={cancelDelete}
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button 
+                className={styles.modalDeleteBtn} 
+                onClick={confirmDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Event'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
