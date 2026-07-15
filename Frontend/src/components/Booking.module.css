@@ -1,14 +1,13 @@
-
 .appearence-container {
     width: 100%;
     display: flex;
     margin-top: 2%;
     font-family: Poppins;
     height: 85%;
-    
 }
+
 .bookings {
-    width:74%;
+    width: 74%;
     height: 77%;
     margin: 0 auto;
     position: absolute;
@@ -23,108 +22,121 @@
     flex-direction: column;
     align-items: center;
     row-gap: 3%;
-    overflow:hidden;
-  }
-  .menuCon {
+    overflow: hidden;
+}
+
+.menuCon {
     width: 100%;
     height: 10%;
     display: flex;
     flex-direction: row;
     align-items: center;
     column-gap: 4%;
-    padding-left:4% ;
+    padding-left: 4%;
     cursor: pointer;
-  }
-  .menu{
-font-size: 1.2em;
+}
 
-  }
-  .activeMenu{
+.menu {
+    font-size: 1.2em;
+}
+
+.activeMenu {
     width: 13%;
     height: 1.5%;
     background: #007bff;
     margin-top: -1%;
-  }
-  .line{
+}
+
+.line {
     width: 104%;
     height: 1.4px;
     background: #E0E2D9;
     margin-left: -2%;
-  }
-  .upcomingCon{
+}
+
+.upcomingCon {
     width: 100%;
     margin-top: 1%;
     height: 30em;
     overflow: auto;
-    overflow-x:hidden ;
-  
-  }
-  .upcoming{
-    width: 100%;
-    height: 20%;
-    display: flex;
+    overflow-x: hidden;
+}
 
-  }
-  .p1{
+.upcoming {
+    width: 100%;
+    min-height: 20%;
+    display: flex;
+    flex-wrap: wrap;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.upcoming:last-child {
+    border-bottom: none;
+}
+
+.p1 {
     width: 40em;
     height: 100%;
     display: flex;
     flex-wrap: wrap;
-   align-items: center;
+    align-items: center;
     padding-left: 3.5%;
-  }
+}
 
-  .pendingCon{
+.pendingCon {
     border: 2px solid;
     width: 100%;
-
     height: 7em;
     margin-top: 2%;
-  }
-  .cancelCon{
+}
+
+.cancelCon {
     border: 2px solid;
     width: 100%;
-
     height: 7em;
     margin-top: 2%;
-  }
-  .pastCon{
+}
+
+.pastCon {
     border: 2px solid;
     width: 100%;
-
     height: 7em;
     margin-top: 2%;
-  }
-  
-  .date{
+}
+
+.date {
     width: 40%;
+}
 
-  }
-  .description{
+.description {
     width: 40%;
     color: #454545;
-  }
-  .time{
+}
+
+.time {
     width: 40%;
     color: #007bff;
-  }
-  .teamName{
+}
+
+.teamName {
     width: 50%;
     color: #6D6D6D;
     font-size: 0.9em;
-   
-  }
-  .p2{
+}
+
+.p2 {
     width: 30em;
     height: 100%;
     display: flex;
-   align-items: center;
-   justify-content: flex-start;
+    align-items: center;
+    justify-content: flex-start;
     padding-left: 3.5%;
     column-gap: 7%;
+    flex-wrap: wrap;
+}
 
-  }
-  .accepted{
+.accepted {
     width: 50%;
     border: 2px solid #E0E2D9;
     border-radius: 25px;
@@ -137,9 +149,9 @@ font-size: 1.2em;
     background: #F3F3F1;
     color: black;
     margin-left: -5%;
-    
-  }
-  .rejected{
+}
+
+.rejected {
     background: #616161;
     width: 10em;
     border-radius: 25px;
@@ -151,63 +163,80 @@ font-size: 1.2em;
     font-weight: 500;
     color: white;
     margin-left: -5%;
-  }
-  .people{
+}
+
+.past {
+    background: #8e8e8e;
+    width: 10em;
+    border-radius: 25px;
+    height: 45%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1em;
+    font-weight: 500;
+    color: white;
+    margin-left: -5%;
+}
+
+.people {
     display: flex;
     width: 15em;
     column-gap: 3%;
-  }
-  .people p{
+    cursor: pointer;
+}
+
+.people p {
     font-size: 1em;
     color: #6D6D6D;
-  }
-  
-  
-  
-  .eventActions {
+}
+
+.eventActions {
     position: absolute;
     top: 15px;
     right: 15px;
     display: flex;
     gap: 10px;
-  }
-  
-  .actionIcon {
+}
+
+.actionIcon {
     width: 18px;
     height: 18px;
     cursor: pointer;
     opacity: 0.7;
     transition: opacity 0.2s;
-  }
-  
-  .actionIcon:hover {
+}
+
+.actionIcon:hover {
     opacity: 1;
-  }
-  
-  .editIcon {
+}
+
+.editIcon {
     cursor: pointer;
     font-size: 1.1rem;
     opacity: 0.7;
     transition: opacity 0.2s;
-  }
-  
-  .editIcon:hover {
+}
+
+.editIcon:hover {
     opacity: 1;
-  }
-  
-  /* Loading and error states */
-  .loading, .noEvents, .error {
+}
+
+/* Loading and error states */
+.loading,
+.noEvents,
+.error {
     text-align: center;
     padding: 40px 20px;
     color: #666;
-  }
-  
-  .error {
+}
+
+.error {
     color: #f44336;
-  }
-  
-  /* Participants Dialog */
-  .participantsDialog {
+}
+
+/* Participants Dialog */
+.participantsDialog {
     position: absolute;
     top: 45%;
     left: 77%;
@@ -218,279 +247,555 @@ font-size: 1.2em;
     flex-direction: column;
     z-index: 1000;
     padding: 1%;
-    z-index: 1000;
     background: white;
     border-radius: 12px;
-    
-  }
-  .participantsDialog h3{
+}
+
+.participantsDialog h3 {
     width: 43%;
     height: 10%;
     background: transparent;
     font-size: 1em;
-  }
-  .dialogContent {
+}
+
+.dialogHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.dialogContent {
     width: 100%;
     height: 100%;
     overflow-x: hidden;
     overflow-y: auto;
     font-size: 0.9em;
     margin-top: 3%;
-    
-  }
-  .participantsList{
+    padding: 10px 15px;
+}
+
+.participantsList {
     display: flex;
     flex-direction: column;
-  }
-  .participant{
+}
+
+.participant {
     width: 100%;
     display: flex;
     flex-direction: row;
     height: 4em;
     align-items: center;
-  }
-  .check{
+    padding: 5px 0;
+}
+
+.check {
     width: 7%;
     height: 7%;
     display: flex;
     justify-content: flex-end;
     position: absolute;
     left: 85%;
+}
 
-  }
-  .check input{
+.check input {
     height: 100%;
     width: 100%;
     border: 4px solid black;
-  }
+}
 
-  .participant img{
+.participant img {
     width: 20%;
     height: 85%;
-  }
+}
 
-  .closeButton {
-    position: absolute;
-    top: 10px;
-    right: 10px;
+.participantInfo {
+    flex: 1;
+    padding-left: 10px;
+}
+
+.participantName {
+    font-weight: 500;
+    margin: 0;
+}
+
+.participantEmail {
+    color: #666;
+    font-size: 0.85em;
+    margin: 0;
+}
+
+.closeButton {
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 24px;
     cursor: pointer;
-  }
+    color: #666;
+}
 
-  .noParticipants {
+.closeButton:hover {
+    color: #333;
+}
+
+.noParticipants {
     text-align: center;
     color: #666;
     padding: 20px;
-  }
-  .btns{
+}
+
+.btns {
     position: relative;
     width: 13em;
     top: 1%;
-    right:24%;
+    right: 24%;
     display: flex;
     column-gap: 10%;
-  }
-  .btns button{
+}
+
+.btns button {
     display: flex;
     align-items: center;
     padding: 2%;
     border-radius: 12px;
-  }
-  .accept{
+}
+
+.accept {
     width: 50%;
     background: #00C35F;
     border: none;
     color: white;
-  }
-  .accept img{
-        width: 22%;
-        height: 70%;
-  }
-  .reject img{
-        width: 25%;
-        height: 100%;
-  }
-  .reject{
+    cursor: pointer;
+}
+
+.accept img {
+    width: 22%;
+    height: 70%;
+}
+
+.reject img {
+    width: 25%;
+    height: 100%;
+}
+
+.reject {
     width: 50%;
     background: #ED0000;
     border: none;
     color: white;
-  }
-  
-  @media (max-width: 456px) {
+    cursor: pointer;
+}
+
+.accept:disabled,
+.reject:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Meeting Details Styles */
+.meetingDetails {
+    margin-top: 12px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    width: 100%;
+}
+
+.meetingLinkContainer,
+.passwordContainer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.meetingLinkContainer:last-child,
+.passwordContainer:last-child {
+    margin-bottom: 0;
+}
+
+.meetingLabel,
+.passwordLabel {
+    font-weight: 600;
+    color: #495057;
+    font-size: 14px;
+    min-width: 100px;
+}
+
+.linkWrapper,
+.passwordWrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    background: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    min-width: 200px;
+}
+
+.meetingLink {
+    color: #1877F2;
+    text-decoration: none;
+    font-size: 14px;
+    word-break: break-all;
+    flex: 1;
+}
+
+.meetingLink:hover {
+    text-decoration: underline;
+}
+
+.password {
+    font-size: 14px;
+    color: #212529;
+    font-family: monospace;
+    flex: 1;
+}
+
+.copyButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px;
+    transition: transform 0.2s;
+}
+
+.copyButton:hover {
+    transform: scale(1.1);
+}
+
+.meetingButton {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    background: #1877F2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.meetingButton:hover {
+    background: #1558b0;
+}
+
+.meetingButton img {
+    width: 16px;
+    height: 16px;
+    filter: brightness(0) invert(1);
+}
+
+.tabContent {
+    width: 100%;
+    height: 85%;
+    overflow: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 456px) {
     .appearence-container {
         width: 100%;
         height: 73%;
         display: flex;
-        margin-top:20% ;
-    }
-    
-  .bookings {
-      width:94%;
-      height: 60%;
-      margin: 0 auto;
-      position: absolute;
-      top: 24%;
-      left: 3%;
-      padding: 1%;
-      background-color: white;
-      border: 2px solid #E0E2D9;
-      border-radius: 25px;
-      font-family: Poppins;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      row-gap: 3%;
-      overflow:hidden;
-    }
-    .menuCon {
-      width: 100%;
-      height: 10%;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      column-gap: 4%;
-      padding-left:4% ;
-      cursor: pointer;
-    }
-    .menu{
-  font-size: 1em;
-  
-    }
-    .activeMenu{
-      width: 13%;
-      height: 1.5%;
-      background: #007bff;
-      margin-top: -1%;
-    }
-    .line{
-      width: 103%;
-      height: 1.4px;
-      background: #E0E2D9;
-      
-    }
-    .upcomingCon{
-      width: 100%;
-      margin-top: 1%;
-      height: 20em;
-      overflow: auto;
-      overflow-x:hidden ;
-    
-    
-    }
-    .upcoming{
-      width: 100%;
-      height: 25%;
-      display: flex;
-      font-size: 0.5em;
-  
-    }
-    .p1{
-      width: 50%;
-      height: 100%;
-      display: flex;
-      flex-wrap: wrap;
-     align-items: center;
-      padding-left: 3.5%;
-    }
-  
-    .pendingCon{
-      border: 2px solid;
-      width: 100%;
-  
-      height: 7em;
-      margin-top: 2%;
-    }
-    .cancelCon{
-      border: 2px solid;
-      width: 100%;
-  
-      height: 7em;
-      margin-top: 2%;
-    }
-    .pastCon{
-      border: 2px solid;
-      width: 100%;
-  
-      height: 7em;
-      margin-top: 2%;
-    }
-    
-    .date{
-      width: 40%;
-  
-    }
-    .description{
-      width: 40%;
-      color: #454545;
-    }
-    .time{
-      width: 40%;
-      color: #007bff;
-    }
-    .teamName{
-      width: 50%;
-      color: #6D6D6D;
-      font-size: 0.9em;
-     
-    }
-    .p2{
-      width: 50%;
-      height: 100%;
-      display: flex;
-     align-items: center;
-     justify-content: flex-start;
-      padding-left: 3.5%;
-      column-gap: 7%;
-  
+        margin-top: 20%;
     }
 
-    .btns{
-      position: relative;
-      width: 19em;
-      top: 1%;
-      right: 7%;
-      display: flex;
-      column-gap: 10%;
+    .bookings {
+        width: 94%;
+        height: 60%;
+        margin: 0 auto;
+        position: absolute;
+        top: 24%;
+        left: 3%;
+        padding: 1%;
+        background-color: white;
+        border: 2px solid #E0E2D9;
+        border-radius: 25px;
+        font-family: Poppins;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        row-gap: 3%;
+        overflow: hidden;
     }
-    .btns button{
-      display: flex;
-      align-items: center;
-      padding: 2%;
-      border-radius: 12px;
-      
+
+    .menuCon {
+        width: 100%;
+        height: 10%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        column-gap: 4%;
+        padding-left: 4%;
+        cursor: pointer;
     }
-.accept{
-  font-size: 0.8em;
-  width: 9em;
+
+    .menu {
+        font-size: 1em;
+    }
+
+    .activeMenu {
+        width: 13%;
+        height: 1.5%;
+        background: #007bff;
+        margin-top: -1%;
+    }
+
+    .line {
+        width: 103%;
+        height: 1.4px;
+        background: #E0E2D9;
+    }
+
+    .upcomingCon {
+        width: 100%;
+        margin-top: 1%;
+        height: 20em;
+        overflow: auto;
+        overflow-x: hidden;
+    }
+
+    .upcoming {
+        width: 100%;
+        min-height: 25%;
+        display: flex;
+        font-size: 0.5em;
+        flex-wrap: wrap;
+    }
+
+    .p1 {
+        width: 50%;
+        height: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        padding-left: 3.5%;
+    }
+
+    .p2 {
+        width: 50%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        padding-left: 3.5%;
+        column-gap: 7%;
+        flex-wrap: wrap;
+    }
+
+    .btns {
+        position: relative;
+        width: 19em;
+        top: 1%;
+        right: 7%;
+        display: flex;
+        column-gap: 10%;
+    }
+
+    .btns button {
+        display: flex;
+        align-items: center;
+        padding: 2%;
+        border-radius: 12px;
+    }
+
+    .accept {
+        font-size: 0.8em;
+        width: 9em;
+    }
+
+    .reject {
+        font-size: 0.8em;
+        width: 9em;
+    }
+
+    /* Participants Dialog Mobile */
+    .participantsDialog {
+        position: absolute;
+        top: 45%;
+        left: 20%;
+        width: 15em;
+        height: 20em;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        z-index: 1000;
+        padding: 1%;
+        background: white;
+        border-radius: 12px;
+    }
+
+    .participantsDialog h3 {
+        width: 100%;
+        height: 10%;
+        background: transparent;
+        font-size: 1em;
+    }
+
+    /* Meeting Details Mobile */
+    .meetingDetails {
+        padding: 8px;
+    }
+
+    .meetingLinkContainer,
+    .passwordContainer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .linkWrapper,
+    .passwordWrapper {
+        width: 100%;
+        min-width: unset;
+    }
+
+    .meetingLabel,
+    .passwordLabel {
+        min-width: unset;
+        font-size: 12px;
+    }
+
+    .meetingLink {
+        font-size: 12px;
+    }
+
+    .meetingButton {
+        padding: 2px 8px;
+        font-size: 12px;
+    }
+
+    .meetingButton img {
+        width: 14px;
+        height: 14px;
+    }
+
+    .accepted,
+    .rejected,
+    .past {
+        width: 100%;
+        font-size: 0.7em;
+    }
+
+    .people {
+        width: 100%;
+    }
+
+    .people p {
+        font-size: 0.8em;
+    }
+
+    .date,
+    .description,
+    .time {
+        width: 50%;
+        font-size: 0.8em;
+    }
+
+    .teamName {
+        width: 100%;
+        font-size: 0.7em;
+    }
 }
-.reject{
-  font-size: 0.8em;
-  width: 9em;
+
+/* Tablet Responsive */
+@media (min-width: 457px) and (max-width: 768px) {
+    .bookings {
+        width: 90%;
+        left: 5%;
+        height: 70%;
+        top: 20%;
+    }
+
+    .p1 {
+        width: 60%;
+    }
+
+    .p2 {
+        width: 40%;
+    }
+
+    .btns {
+        right: 10%;
+        width: 10em;
+    }
+
+    .participantsDialog {
+        left: 50%;
+        transform: translateX(-50%);
+        width: 18em;
+    }
+
+    .meetingLinkContainer,
+    .passwordContainer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .linkWrapper,
+    .passwordWrapper {
+        width: 100%;
+    }
 }
-  /* Participants Dialog */
-  .participantsDialog {
-    position: absolute;
-    top: 45%;
-    left: 20%;
-    width: 15em;
-    height: 20em;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    display: flex;
-    flex-direction: column;
-    z-index: 1000;
-    padding: 1%;
-    z-index: 1000;
-    background: white;
-    border-radius: 12px;
-    
-  }
-  .participantsDialog h3{
-    width: 100%;
-    height: 10%;
-    background: transparent;
-    font-size: 1em;
-  }
-  }
+
+/* Scrollbar Styling */
+.upcomingCon::-webkit-scrollbar,
+.dialogContent::-webkit-scrollbar {
+    width: 6px;
+}
+
+.upcomingCon::-webkit-scrollbar-track,
+.dialogContent::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.upcomingCon::-webkit-scrollbar-thumb,
+.dialogContent::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.upcomingCon::-webkit-scrollbar-thumb:hover,
+.dialogContent::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Transition Animations */
+.meetingDetails {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.participantsDialog {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
