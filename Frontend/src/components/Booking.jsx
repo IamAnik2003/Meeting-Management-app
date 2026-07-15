@@ -8,7 +8,6 @@ import axios from "axios";
 import avatar from "../assets/avater.png";
 import accept from "../assets/accept.png";
 import reject from "../assets/reject.png";
-// Removed link.png import - using inline SVG or emoji instead
 
 export default function Booking() {
   const [activeTab, setActiveTab] = useState("Upcoming");
@@ -20,6 +19,7 @@ export default function Booking() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showMeetingDetails, setShowMeetingDetails] = useState({});
   const [meetingDetails, setMeetingDetails] = useState({});
+  const [deletedEvents, setDeletedEvents] = useState({});
 
   const [allEvents, setAllEvents] = useState({
     upcoming: [],
@@ -118,13 +118,21 @@ export default function Booking() {
           ...prev,
           [eventId]: true
         }));
+      } else if (response.data.isDeleted) {
+        toast.error("This event has been deleted");
+        setDeletedEvents(prev => ({ ...prev, [eventId]: true }));
       } else {
         toast.error("You need to accept the invitation to view meeting details");
       }
     } catch (error) {
       console.error("Error fetching meeting details:", error);
       if (error.response?.status === 403) {
-        toast.error("You need to accept the invitation to view meeting details");
+        if (error.response?.data?.isDeleted) {
+          toast.error("This event has been deleted");
+          setDeletedEvents(prev => ({ ...prev, [eventId]: true }));
+        } else {
+          toast.error("You need to accept the invitation to view meeting details");
+        }
       } else {
         toast.error("Failed to fetch meeting details");
       }
@@ -132,12 +140,15 @@ export default function Booking() {
   };
 
   const toggleMeetingDetails = (eventId) => {
+    if (deletedEvents[eventId]) {
+      toast.error("This event has been deleted");
+      return;
+    }
     setShowMeetingDetails(prev => ({
       ...prev,
       [eventId]: !prev[eventId]
     }));
     
-    // Fetch details if not already loaded
     if (!meetingDetails[eventId]) {
       fetchMeetingDetails(eventId);
     }
@@ -155,6 +166,13 @@ export default function Booking() {
       setIsProcessing(true);
       const userId = localStorage.getItem("userID");
 
+      // Check if event is deleted
+      const event = allEvents.participantEvents.find(e => e._id === eventId);
+      if (event && event.isDeleted) {
+        toast.error("This event has been deleted");
+        return;
+      }
+
       const updatedParticipantEvents = allEvents.participantEvents.map(event =>
         event._id === eventId ? { ...event, participationStatus: status } : event
       );
@@ -162,11 +180,11 @@ export default function Booking() {
       const now = new Date();
       const tempCategorizedEvents = {
         upcoming: [
-          ...allEvents.upcoming.filter(event => event._id !== eventId),
-          ...(status === "accepted" && updatedParticipantEvents.find(e => e._id === eventId && new Date(e.dateTime) > now) 
+          ...allEvents.upcoming.filter(event => event._id !== eventId && !event.isDeleted),
+          ...(status === "accepted" && updatedParticipantEvents.find(e => e._id === eventId && new Date(e.dateTime) > now && !e.isDeleted) 
             ? [updatedParticipantEvents.find(e => e._id === eventId)] : [])
         ],
-        pending: allEvents.pending.filter(event => event._id !== eventId),
+        pending: allEvents.pending.filter(event => event._id !== eventId && !event.isDeleted),
         canceled: [
           ...allEvents.canceled,
           ...(status === "rejected" ? [updatedParticipantEvents.find(e => e._id === eventId)] : [])
@@ -189,16 +207,19 @@ export default function Booking() {
         upcoming: [
           ...response.data.hostedEvents.filter(event => 
             new Date(event.dateTime) > now && 
-            event.status !== 'canceled'
+            event.status !== 'canceled' &&
+            !event.isDeleted
           ),
           ...response.data.participantEvents.filter(event => 
             event.participationStatus === 'accepted' && 
-            new Date(event.dateTime) > now
+            new Date(event.dateTime) > now &&
+            !event.isDeleted
           )
         ],
         pending: response.data.participantEvents.filter(event => 
           event.participationStatus === 'pending' &&
-          new Date(event.dateTime) > now
+          new Date(event.dateTime) > now &&
+          !event.isDeleted
         ),
         canceled: [
           ...response.data.hostedEvents.filter(event => event.status === "canceled"),
@@ -210,11 +231,13 @@ export default function Booking() {
         past: [
           ...response.data.hostedEvents.filter(event => 
             new Date(event.dateTime) <= now && 
-            event.status !== 'canceled'
+            event.status !== 'canceled' &&
+            !event.isDeleted
           ),
           ...response.data.participantEvents.filter(event => 
             new Date(event.dateTime) <= now &&
-            event.participationStatus === 'accepted'
+            event.participationStatus === 'accepted' &&
+            !event.isDeleted
           )
         ],
         participantEvents: response.data.participantEvents
@@ -226,54 +249,17 @@ export default function Booking() {
       toast.success(`Event ${status}`);
     } catch (err) {
       console.error("Status update error:", err);
-      if (err.response?.status >= 400 && err.response?.status < 500) {
+      if (err.response?.status === 403) {
+        toast.error("This event has been deleted");
+        setDeletedEvents(prev => ({ ...prev, [eventId]: true }));
+        // Remove from pending
+        setAllEvents(prev => ({
+          ...prev,
+          pending: prev.pending.filter(e => e._id !== eventId)
+        }));
+      } else {
         setAllEvents(previousEvents);
         toast.error(`Failed to ${status} event: ${err.response?.data?.message || err.message}`);
-      } else {
-        const response = await axios.get(`${VITE_BACK_URL}/api/users/${userId}/bookingevents`);
-        const updatedEvent = response.data.participantEvents.find(e => e._id === eventId);
-        if (updatedEvent && updatedEvent.participationStatus === status) {
-          const now = new Date();
-          const categorizedEvents = {
-            upcoming: [
-              ...response.data.hostedEvents.filter(event => 
-                new Date(event.dateTime) > now && 
-                event.status !== 'canceled'
-              ),
-              ...response.data.participantEvents.filter(event => 
-                event.participationStatus === 'accepted' && 
-                new Date(event.dateTime) > now
-              )
-            ],
-            pending: response.data.participantEvents.filter(event => 
-              event.participationStatus === 'pending' &&
-              new Date(event.dateTime) > now
-            ),
-            canceled: [
-              ...response.data.hostedEvents.filter(event => event.status === "canceled"),
-              ...response.data.participantEvents.filter(event => 
-                event.participationStatus === 'rejected' ||
-                (event.participationStatus === 'pending' && new Date(event.dateTime) <= now)
-              )
-            ],
-            past: [
-              ...response.data.hostedEvents.filter(event => 
-                new Date(event.dateTime) <= now && 
-                event.status !== 'canceled'
-              ),
-              ...response.data.participantEvents.filter(event => 
-                new Date(event.dateTime) <= now &&
-                event.participationStatus === 'accepted'
-              )
-            ],
-            participantEvents: response.data.participantEvents
-          };
-          setAllEvents(categorizedEvents);
-          toast.success(`Event ${status}`);
-        } else {
-          setAllEvents(previousEvents);
-          toast.error(`Failed to ${status} event: ${err.message}`);
-        }
       }
     } finally {
       setIsProcessing(false);
@@ -340,16 +326,19 @@ export default function Booking() {
           upcoming: [
             ...hostedEvents.filter(event => 
               new Date(event.dateTime) > now && 
-              event.status !== 'canceled'
+              event.status !== 'canceled' &&
+              !event.isDeleted
             ),
             ...participantEvents.filter(event => 
               event.participationStatus === 'accepted' && 
-              new Date(event.dateTime) > now
+              new Date(event.dateTime) > now &&
+              !event.isDeleted
             )
           ],
           pending: participantEvents.filter(event => 
             event.participationStatus === 'pending' &&
-            new Date(event.dateTime) > now
+            new Date(event.dateTime) > now &&
+            !event.isDeleted
           ),
           canceled: [
             ...hostedEvents.filter(event => event.status === "canceled"),
@@ -361,11 +350,13 @@ export default function Booking() {
           past: [
             ...hostedEvents.filter(event => 
               new Date(event.dateTime) <= now && 
-              event.status !== 'canceled'
+              event.status !== 'canceled' &&
+              !event.isDeleted
             ),
             ...participantEvents.filter(event => 
               new Date(event.dateTime) <= now &&
-              event.participationStatus === 'accepted'
+              event.participationStatus === 'accepted' &&
+              !event.isDeleted
             )
           ],
           participantEvents: participantEvents
@@ -383,7 +374,6 @@ export default function Booking() {
     fetchAllEvents();
   }, [VITE_BACK_URL, showParticipantsDialog]);
 
-  // Component to display meeting details
   const MeetingDetails = ({ eventId }) => {
     const details = meetingDetails[eventId];
     if (!details) return null;
@@ -446,11 +436,19 @@ export default function Booking() {
           const isParticipant = event.participationStatus === 'accepted';
           const isHost = event.createdBy === localStorage.getItem("userID");
           const canViewMeeting = isHost || isParticipant;
+          const isDeleted = event.isDeleted || false;
 
           return (
-            <div key={event._id} className={styles.upcoming}>
+            <div 
+              key={event._id} 
+              className={`${styles.upcoming} ${isDeleted ? styles.deletedEvent : ''}`}
+              style={isDeleted ? { opacity: 0.6, pointerEvents: 'none' } : {}}
+            >
               <div className={styles.p1}>
-                <div className={styles.date}>{formatDate(event.dateTime)}</div>
+                <div className={styles.date}>
+                  {formatDate(event.dateTime)}
+                  {isDeleted && <span className={styles.deletedTag}> (Deleted)</span>}
+                </div>
                 <div className={styles.description}>{event.eventTopic}</div>
                 <div className={styles.time}>
                   {formatTime(event.dateTime, event.duration)}
@@ -462,17 +460,18 @@ export default function Booking() {
                 </div>
               </div>
               <div className={styles.p2}>
-                <div className={styles.accepted}>
-                  <p>Accepted</p>
+                <div className={`${styles.accepted} ${isDeleted ? styles.deletedStatus : ''}`}>
+                  <p>{isDeleted ? 'Deleted' : 'Accepted'}</p>
                 </div>
                 <div
                   className={styles.people}
-                  onClick={() => showParticipants(event.participants || [], event._id)}
+                  onClick={() => !isDeleted && showParticipants(event.participants || [], event._id)}
+                  style={isDeleted ? { cursor: 'not-allowed' } : {}}
                 >
                   <img src={people} alt="People" />
                   <p>{event.participants?.length || 0} people</p>
                 </div>
-                {canViewMeeting && (
+                {canViewMeeting && !isDeleted && (
                   <button
                     className={styles.meetingButton}
                     onClick={() => toggleMeetingDetails(event._id)}
@@ -482,7 +481,7 @@ export default function Booking() {
                   </button>
                 )}
               </div>
-              {showMeetingDetails[event._id] && (
+              {showMeetingDetails[event._id] && !isDeleted && (
                 <MeetingDetails eventId={event._id} />
               )}
             </div>
@@ -501,49 +500,68 @@ export default function Booking() {
 
     return (
       <div className={styles.upcomingCon}>
-        {allEvents.pending.map((event) => (
-          <div key={event._id} className={styles.upcoming}>
-            <div className={styles.p1}>
-              <div className={styles.date}>{formatDate(event.dateTime)}</div>
-              <div className={styles.description}>{event.eventTopic}</div>
-              <div className={styles.time}>
-                {formatTime(event.dateTime, event.duration)}
+        {allEvents.pending.map((event) => {
+          const isDeleted = event.isDeleted || false;
+          
+          return (
+            <div 
+              key={event._id} 
+              className={`${styles.upcoming} ${isDeleted ? styles.deletedEvent : ''}`}
+              style={isDeleted ? { opacity: 0.6, pointerEvents: 'none' } : {}}
+            >
+              <div className={styles.p1}>
+                <div className={styles.date}>
+                  {formatDate(event.dateTime)}
+                  {isDeleted && <span className={styles.deletedTag}> (Deleted)</span>}
+                </div>
+                <div className={styles.description}>{event.eventTopic}</div>
+                <div className={styles.time}>
+                  {formatTime(event.dateTime, event.duration)}
+                </div>
+                <div className={styles.teamName}>
+                  {event.createdBy === localStorage.getItem("userID")
+                    ? `You and ${event.teamName || "Team"}`
+                    : `Invited by ${event.hostName}`}
+                </div>
               </div>
-              <div className={styles.teamName}>
-                {event.createdBy === localStorage.getItem("userID")
-                  ? `You and ${event.teamName || "Team"}`
-                  : `Invited by ${event.hostName}`}
+              <div className={styles.p2}>
+                <div
+                  className={styles.people}
+                  onClick={() => !isDeleted && showParticipants(event.participants || [], event._id)}
+                  style={isDeleted ? { cursor: 'not-allowed' } : {}}
+                >
+                  <img src={people} alt="People" />
+                  <p>{event.participants?.length || 0} people</p>
+                </div>
+                {!isDeleted && (
+                  <div className={styles.btns}>
+                    <button
+                      className={styles.reject}
+                      onClick={() => handleRejectEvent(event._id)}
+                      disabled={isProcessing}
+                    >
+                      <img src={reject} alt="Reject" />
+                      <p>Reject</p>
+                    </button>
+                    <button
+                      className={styles.accept}
+                      onClick={() => handleAcceptEvent(event._id)}
+                      disabled={isProcessing}
+                    >
+                      <img src={accept} alt="Accept" />
+                      <p>Accept</p>
+                    </button>
+                  </div>
+                )}
+                {isDeleted && (
+                  <div className={styles.deletedBadge}>
+                    <span>Event Deleted</span>
+                  </div>
+                )}
               </div>
             </div>
-            <div className={styles.p2}>
-              <div
-                className={styles.people}
-                onClick={() => showParticipants(event.participants || [], event._id)}
-              >
-                <img src={people} alt="People" />
-                <p>{event.participants?.length || 0} people</p>
-              </div>
-              <div className={styles.btns}>
-                <button
-                  className={styles.reject}
-                  onClick={() => handleRejectEvent(event._id)}
-                  disabled={isProcessing}
-                >
-                  <img src={reject} alt="Reject" />
-                  <p>Reject</p>
-                </button>
-                <button
-                  className={styles.accept}
-                  onClick={() => handleAcceptEvent(event._id)}
-                  disabled={isProcessing}
-                >
-                  <img src={accept} alt="Accept" />
-                  <p>Accept</p>
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
@@ -599,9 +617,16 @@ export default function Booking() {
     return (
       <div className={styles.upcomingCon}>
         {allEvents.past.map((event) => (
-          <div key={event._id} className={styles.upcoming}>
+          <div 
+            key={event._id} 
+            className={`${styles.upcoming} ${event.isDeleted ? styles.deletedEvent : ''}`}
+            style={event.isDeleted ? { opacity: 0.6 } : {}}
+          >
             <div className={styles.p1}>
-              <div className={styles.date}>{formatDate(event.dateTime)}</div>
+              <div className={styles.date}>
+                {formatDate(event.dateTime)}
+                {event.isDeleted && <span className={styles.deletedTag}> (Deleted)</span>}
+              </div>
               <div className={styles.description}>{event.eventTopic}</div>
               <div className={styles.time}>
                 {formatTime(event.dateTime, event.duration)}
@@ -615,7 +640,8 @@ export default function Booking() {
             <div className={styles.p2}>
               <div className={styles.past}>
                 <p>
-                  {event.status === "canceled"
+                  {event.isDeleted ? "Deleted" :
+                    event.status === "canceled"
                     ? "Canceled"
                     : event.participationStatus === "rejected"
                     ? "Rejected"
